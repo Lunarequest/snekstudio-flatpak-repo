@@ -5,7 +5,7 @@ on:
     branches:
       - mistress
   schedule:
-    - "0 1 * * *"
+    - cron: "0 1 * * *"
 
 jobs:
   flatpak:
