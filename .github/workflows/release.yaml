@@ -13,11 +13,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Night Assets
-        uses: dsaltares/fetch-gh-release-asset@master
+        uses: lunarequest/fetch-gh-release-asset@master
         with:
-          repo: "ExpiredPopsicle/SnekStudio"
+          repo: "Lunarequest/SnekStudio"
           version: "tags/nightly"
           regex: true
           file: "SnekStudio_Linux-*.tar.gz"
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: build flatpak
+      - name: setup
+        shell: bash
+        run: |
+          cp ./flatpak/* .
+          mkdir icons
+          for size in ("32x32" "64x64" "128x128" "256x256" "512x512") do
+            wget "https://github.com/ExpiredPopsicle/SnekStudio/blob/main/Core/UI/Images/icons/$(size).png" -O "icons/$(size.png)"
+          done
+          sed -i "s|AMD64_ARCHIVE|$(ls | grep x86_64)|g" com.snekstudio.Snekstudio.yaml
+          sed -i "s|AMD64_ARCHIVE|$(ls | grep arm64)|g" com.snekstudio.Snekstudio.yaml
+          cat com.snekstudio.SnekStudio.yaml
