@@ -1,0 +1,23 @@
+name: flatpak
+
+on:
+  push:
+    branches:
+      - mistress
+  schedule:
+    - "0 1 * * *"
+
+jobs:
+  flatpak:
+    name: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Night Assets
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: "ExpiredPopsicle/SnekStudio"
+          version: "tags/nightly"
+          regex: true
+          file: "SnekStudio_Linux-*.tar.gz"
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: build flatpak
