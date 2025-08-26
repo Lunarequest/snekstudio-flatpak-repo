@@ -8,17 +8,45 @@ on:
     - cron: "0 1 * * *"
 
 jobs:
-  flatpak:
+  fetch_sources:
     name: Setup
     runs-on: ubuntu-latest
     steps:
+      - name: fetch
+        shell: bash
+        run: |
+          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
+          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
+      - name: push assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: SnekStudio_Linux*
+  build_flatpak:
+    needs: fetch_sources
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
+      options: --privileged
+    steps:
+      - name: Install deps
+        run: |
+          # Use the static binaries because it's unable to use a package manager 
+          curl https://download.docker.com/linux/static/stable/x86_64/docker-28.3.3.tgz --output ./docker.tgz
+          tar xzvf docker.tgz
+          mv docker/* /usr/bin
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: "0"
           fetch-tags: true
-      - name: setup
+      - name: steup flatpak files
         shell: bash
         run: |
           cp ./flatpak/* .
@@ -26,9 +54,28 @@ jobs:
           for size in "32x32" "64x64" "128x128" "256x256" "512x512"; do
             wget "https://github.com/ExpiredPopsicle/SnekStudio/blob/main/Core/UI/Images/icons/${size}.png" -O "icons/${size}.png"
           done
-          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
-          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
-          ls
           sed -i "s|AMD64_ARCHIVE|$(ls | grep x86_64)|g" com.snekstudio.Snekstudio.yaml
           sed -i "s|AMD64_ARCHIVE|$(ls | grep arm64)|g" com.snekstudio.Snekstudio.yaml
           cat com.snekstudio.Snekstudio.yaml
+      - name: Build x64
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: SnekStudio_${{ needs.build.outputs.version }}_x86_64.flatpak
+          manifest-path: com.snekstudio.Snekstudio.yaml
+          cache: false # caching would mean we have to make Version more verbose
+          upload-artifact: false # we're going to push them to a release why add em as artifacts
+          arch: x86_64
+
+      - name: Build arm64
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: SnekStudio_${{ needs.build.outputs.version }}_aarch64.flatpak
+          manifest-path: com.snekstudio.Snekstudio.yaml
+          cache: false
+          upload-artifact: false
+          arch: aarch64
+      - name: Upload built files as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: SnekStudio*.flatpak
