@@ -6,24 +6,12 @@ on:
       - mistress
   schedule:
     - cron: "0 1 * * *"
-
+env:
+  FLATPAK_BRANCH: nightly
+  FLATPAK_BUILD_REPO_x64: build-repo-x64
+  FLATPAK_BUILD_REPO_arm64: build-repo-aarch64
 jobs:
-  fetch_sources:
-    name: Setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: fetch
-        shell: bash
-        run: |
-          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
-          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
-      - name: push assets
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: SnekStudio_Linux*
   build_flatpak:
-    needs: fetch_sources
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
@@ -35,17 +23,22 @@ jobs:
           curl https://download.docker.com/linux/static/stable/x86_64/docker-28.3.3.tgz --output ./docker.tgz
           tar xzvf docker.tgz
           mv docker/* /usr/bin
+
       - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
+
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Download build output
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
+
+      - name: fetch
+        shell: bash
+        run: |
+          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
+          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
+
       - name: steup flatpak files
         shell: bash
         run: |
@@ -57,25 +50,95 @@ jobs:
           sed -i "s|AMD64_ARCHIVE|$(ls | grep x86_64)|g" com.snekstudio.Snekstudio.yaml
           sed -i "s|ARM64_ARCHIVE|$(ls | grep arm64)|g" com.snekstudio.Snekstudio.yaml
           cat com.snekstudio.Snekstudio.yaml
+      - name: setup flathub
+        run: flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       - name: Build x64
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: SnekStudio_${{ needs.build.outputs.version }}_x86_64.flatpak
+          bundle: SnekStudio_${{ env.FLATPAK_BRANCH }}_x86_64.flatpak
           manifest-path: com.snekstudio.Snekstudio.yaml
-          cache: false # caching would mean we have to make Version more verbose
-          upload-artifact: false # we're going to push them to a release why add em as artifacts
+          cache: false
+          upload-artifact: false
           arch: x86_64
 
-      - name: Build arm64
+      - run: mv repo ${FLATPAK_BUILD_REPO_x64}
+
+      - name: Build x64
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: SnekStudio_${{ needs.build.outputs.version }}_aarch64.flatpak
+          bundle: SnekStudio_${{ env.FLATPAK_BRANCH }}_x86_64.flatpak
           manifest-path: com.snekstudio.Snekstudio.yaml
           cache: false
           upload-artifact: false
           arch: aarch64
+
+      - run: mv repo ${FLATPAK_BUILD_REPO_arm64}
+
       - name: Upload built files as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-output
-          path: SnekStudio*.flatpak
+          name: flatpak-output
+          path: |
+            SnekStudio*.flatpak
+            ${{ env.FLATPAK_BUILD_REPO_x64 }}/**
+            !${{ env.FLATPAK_BUILD_REPO_x64 }}/.lock
+            ${{ env.FLATPAK_BUILD_REPO_arm64 }}/**
+            !${{ env.FLATPAK_BUILD_REPO_arm64 }}/.lock
+
+  oci_publish:
+    needs: build_flatpak
+    runs-on: ubuntu-latest
+    steps:
+      - name: install deps
+        run: |
+          sudo apt-get update && sudo apt-get -y --no-install-recommends install skopeo flatpak jq
+
+      - name: Download build bundles
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak-output
+
+      - run: ls
+
+      - name: import x86_64
+        run: |
+          flatpak build-import-bundle snekstudio-nightly SnekStudio_nightly_x86_64.flatpak
+
+      - name: create oci bundle for x86_64
+        run: |
+          flatpak build-bundle \
+          --oci \
+          --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
+          build_dir snekstudio-nightly com.snekstudio.Snekstudio nightly
+
+      - name: publish oci bundle x86_64
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          REGISTRY_AUTH_FILE: /tmp/auth.json
+        run: |
+          export IMAGE_REPOSITORY=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
+          skopeo login --username "${{ github.actor }}" --password-stdin ghcr.io <<<$GITHUB_TOKEN
+          skopeo copy \
+           oci:snekstudio-nightly \
+           docker://ghcr.io/${IMAGE_REPOSITORY}:nightly
+
+      - name: import aarch64
+        run: |
+          flatpak build-import-bundle snekstudio-nightly-aarch64 SnekStudio_nightly_aarch64.flatpak
+      - name: create oci bundle for aarch64
+        run: |
+          flatpak build-bundle \
+            --oci \
+            --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
+            build_dir snekstudio-nightly-aarch64 com.snekstudio.Snekstudio nightly-aarch64
+
+      - name: publish oci bundle for aarch64
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          REGISTRY_AUTH_FILE: /tmp/auth.json
+        run: |
+          export IMAGE_REPOSITORY=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
+          skopeo login --username "${{ github.actor }}" --password-stdin ghcr.io <<<$GITHUB_TOKEN
+          skopeo copy \
+           oci:snekstudio-nightly-aarch64 \
+           docker://ghcr.io/${IMAGE_REPOSITORY}:nightly-aarch64
