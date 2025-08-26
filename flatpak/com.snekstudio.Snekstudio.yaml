@@ -22,6 +22,7 @@ modules:
       - cp -r Mods ${FLATPAK_DEST}/share/SnekStudio
       - cp -r SampleModels ${FLATPAK_DEST}/share/SnekStudio
     post-install:
+      - ls
       - install -D com.snekstudio.Snekstudio.desktop -t  /app/share/applications/
       - install -D com.snekstudio.Snekstudio.metainfo.xml -t /app/share/metainfo/
       - install -Dm644 32x32.png  /app/share/icons/hicolor/32x32/apps/$FLATPAK_ID.png
