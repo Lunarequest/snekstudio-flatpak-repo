@@ -182,7 +182,7 @@ jobs:
             rm -f ./gh-pages/repos/${REPO_NAME}.o
           fi
 
-          git -C ./gh-pages add
+          git -C ./gh-pages add .
       - name: Check for changes
         id: is-updated
         run: |
