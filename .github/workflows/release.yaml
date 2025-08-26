@@ -46,7 +46,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-output
-          path: SnekStudio_Linux*
       - name: steup flatpak files
         shell: bash
         run: |
@@ -56,7 +55,7 @@ jobs:
             wget "https://github.com/ExpiredPopsicle/SnekStudio/blob/main/Core/UI/Images/icons/${size}.png" -O "icons/${size}.png"
           done
           sed -i "s|AMD64_ARCHIVE|$(ls | grep x86_64)|g" com.snekstudio.Snekstudio.yaml
-          sed -i "s|AMD64_ARCHIVE|$(ls | grep arm64)|g" com.snekstudio.Snekstudio.yaml
+          sed -i "s|ARM64_ARCHIVE|$(ls | grep arm64)|g" com.snekstudio.Snekstudio.yaml
           cat com.snekstudio.Snekstudio.yaml
       - name: Build x64
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
