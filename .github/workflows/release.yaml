@@ -31,7 +31,7 @@ jobs:
           platforms: arm64
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: fetch
         shell: bash
@@ -139,3 +139,62 @@ jobs:
           skopeo copy \
            oci:snekstudio-nightly-aarch64 \
            docker://ghcr.io/${IMAGE_REPOSITORY}:nightly-aarch64
+  update-flatpak-oci-index:
+    runs-on: ubuntu-latest
+    needs: build_flatpak
+    steps:
+      - run: echo "REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: "gh-pages"
+          branch: "gh-pages"
+
+      - name: Update static index
+        env:
+          REGISTRY_AUTH_FILE: /tmp/auth.json
+        run: |
+          export IMAGE_REPOSITORY=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
+          set -x
+          mkdir -p ./gh-pages/repos
+
+          X86_TAG=nightly
+          ARM_TAG=nightly-aarch64
+
+          # Inspect and pin RepoTags to the exact tag we queried (avoid tag duplication)
+          x86=$(skopeo inspect docker://ghcr.io/${IMAGE_REPOSITORY}:${X86_TAG} \
+            | jq --arg tag "$X86_TAG" '.RepoTags = [$tag]')
+          arm=$(skopeo inspect docker://ghcr.io/${IMAGE_REPOSITORY}:${ARM_TAG} \
+            | jq --arg tag "$ARM_TAG" '.RepoTags = [$tag]')
+
+          # Old-style single file: Name + Images [x86, arm]
+          jq -n \
+            --arg name "ghcr.io/${IMAGE_REPOSITORY}" \
+            --argjson x86 "$x86" \
+            --argjson arm "$arm" \
+            '{ "Name": $name, "Images": [$x86, $arm] }' \
+            > ./gh-pages/repos/${REPO_NAME}.o
+
+          if [ -s ./gh-pages/repos/${REPO_NAME}.o ]; then
+            mv ./gh-pages/repos/${REPO_NAME}.o ./gh-pages/repos/${REPO_NAME}
+          else
+            rm -f ./gh-pages/repos/${REPO_NAME}.o
+          fi
+
+          git -C ./gh-pages add
+      - name: Check for changes
+        id: is-updated
+        run: |
+          set -x
+          git -C ./gh-pages status -s -uno
+          ls ./gh-pages/repos/
+          [ -z "$(git -C ./gh-pages status -s -uno)" ] || echo "updated=true" >> $GITHUB_OUTPUT
+
+      - name: Push to repository
+        if: steps.is-updated.outputs.updated
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git -C gh-pages commit --allow-empty -am "Update index $(date -u +%Y%m%d%H%M)"
+          git -C gh-pages push
