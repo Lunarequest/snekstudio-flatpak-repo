@@ -1,0 +1,50 @@
+name: update index
+
+on:
+  push:
+    branches:
+      - mistress
+
+jobs:
+  update-index:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: main
+
+      - uses: actions/checkout@v4
+        with:
+          ref: "gh-pages"
+          path: "gh-pages"
+          token: ${{ secrets.PAT }}
+
+      - name: Update static index
+        env:
+          REGISTRY_AUTH_FILE: /tmp/auth.json
+        run: |
+          export FILES="./main/repos/*"
+          echo '{"Registry": "https://ghcr.io/","Results": []}' > ./gh-pages/index/static
+          for f in $FILES ; do
+            echo "Processing $f file..."
+            cat ./gh-pages/index/static | jq --argjson container "$(cat $f)" '.Results += [ $container ]' > ./gh-pages/index/static
+          done
+
+      - name: Check for changes
+        id: is-updated
+        run: |
+          set -x
+          git -C ./gh-pages status -s -uno
+          cat ./gh-pages/index/static
+          # Don't let the file be empty
+          [ ! -s ./gh-pages/index/static ] || [ -z "$(git -C ./gh-pages status -s -uno)" ] || echo "updated=true" >> $GITHUB_OUTPUT
+
+      - name: Push to repository
+        if: steps.is-updated.outputs.updated
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git -C gh-pages commit -am "Update index"
+          git -C gh-pages push
