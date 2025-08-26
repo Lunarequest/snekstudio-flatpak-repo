@@ -120,15 +120,13 @@ jobs:
            oci:snekstudio-nightly \
            docker://ghcr.io/${IMAGE_REPOSITORY}:nightly
 
-      - name: import aarch64
-        run: |
-          flatpak build-import-bundle snekstudio-nightly-aarch64 SnekStudio_nightly_aarch64.flatpak
       - name: create oci bundle for aarch64
         run: |
+          mkdir -p ${FLATPAK_BUILD_REPO_arm64}/{extensions,refs/{mirrors,remotes},state,tmp/cache}
           flatpak build-bundle \
             --oci \
             --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
-            build_dir snekstudio-nightly-aarch64 com.snekstudio.Snekstudio nightly-aarch64
+            ${FLATPAK_BUILD_REPO_arm64} snekstudio-nightly-aarch64 com.snekstudio.Snekstudio nightly
 
       - name: publish oci bundle for aarch64
         env:
