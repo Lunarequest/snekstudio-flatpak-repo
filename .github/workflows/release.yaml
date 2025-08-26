@@ -50,8 +50,7 @@ jobs:
           sed -i "s|AMD64_ARCHIVE|$(ls | grep x86_64)|g" com.snekstudio.Snekstudio.yaml
           sed -i "s|ARM64_ARCHIVE|$(ls | grep arm64)|g" com.snekstudio.Snekstudio.yaml
           cat com.snekstudio.Snekstudio.yaml
-      - name: setup flathub
-        run: flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
       - name: Build x64
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
@@ -59,6 +58,7 @@ jobs:
           manifest-path: com.snekstudio.Snekstudio.yaml
           cache: false
           upload-artifact: false
+          branch: nightly
           arch: x86_64
 
       - run: mv repo ${FLATPAK_BUILD_REPO_x64}
@@ -70,6 +70,7 @@ jobs:
           manifest-path: com.snekstudio.Snekstudio.yaml
           cache: false
           upload-artifact: false
+          branch: nightly
           arch: aarch64
 
       - run: mv repo ${FLATPAK_BUILD_REPO_arm64}
