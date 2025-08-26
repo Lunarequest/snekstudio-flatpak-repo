@@ -70,7 +70,7 @@ jobs:
           manifest-path: com.snekstudio.Snekstudio.yaml
           cache: false
           upload-artifact: false
-          branch: nightly
+          branch: nightly-aarch64
           arch: aarch64
 
       - run: mv repo ${FLATPAK_BUILD_REPO_arm64}
@@ -124,9 +124,10 @@ jobs:
         run: |
           mkdir -p ${FLATPAK_BUILD_REPO_arm64}/{extensions,refs/{mirrors,remotes},state,tmp/cache}
           flatpak build-bundle \
+            --arch=aarch64 \
             --oci \
             --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
-            ${FLATPAK_BUILD_REPO_arm64} snekstudio-nightly-aarch64 com.snekstudio.Snekstudio nightly
+            ${FLATPAK_BUILD_REPO_arm64} snekstudio-nightly-aarch64 com.snekstudio.Snekstudio nightly-aarch64
 
       - name: publish oci bundle for aarch64
         env:
