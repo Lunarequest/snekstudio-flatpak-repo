@@ -1,0 +1,31 @@
+{
+    "Name": "ghcr.io/lunarequest/snekstudio-flatpak-repo",
+    "Digest": "sha256:1b8ac77c3f7af4700cd1bd48c88643278aa2648a17b3db9f1e63b003a14a6a73",
+    "RepoTags": [
+        "nightly"
+    ],
+    "Created": "2025-08-26T10:06:12Z",
+    "DockerVersion": "",
+    "Labels": {
+        "org.flatpak.body": "Name: com.snekstudio.Snekstudio\nArch: x86_64\nBranch: nightly\nBuilt with: Flatpak 1.16.1\n",
+        "org.flatpak.commit": "894c2137c3e839c1a6833c62d4aca67aff8830ad8e17d6b17e06e35311a820a8",
+        "org.flatpak.commit-metadata.ostree.collection-binding": "AABz",
+        "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL2NvbS5zbmVrc3R1ZGlvLlNuZWtzdHVkaW8veDg2XzY0L25pZ2h0bHkALQBhcw==",
+        "org.flatpak.commit-metadata.xa.download-size": "AAAAACdEXukAdA==",
+        "org.flatpak.commit-metadata.xa.installed-size": "AAAAACv3pAAAdA==",
+        "org.flatpak.commit-metadata.xa.ref": "YXBwL2NvbS5zbmVrc3R1ZGlvLlNuZWtzdHVkaW8veDg2XzY0L25pZ2h0bHkAAHM=",
+        "org.flatpak.download-size": "658521221",
+        "org.flatpak.installed-size": "737649664",
+        "org.flatpak.ref": "app/com.snekstudio.Snekstudio/x86_64/nightly",
+        "org.flatpak.subject": "Export com.snekstudio.Snekstudio",
+        "org.flatpak.timestamp": "1756202772",
+        "org.freedesktop.appstream.appdata": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> ...",
+        "org.freedesktop.appstream.icon-128": "data:image/png;base64,iVBORw0K..."
+    },
+    "Architecture": "amd64",
+    "Os": "linux",
+    "Layers": [
+        "sha256:23a0784f4aa47ade0042058e6880e8cb37bfc1f2a720cfedafa14d2282fef044"
+    ],
+    "Env": null
+}
