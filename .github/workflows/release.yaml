@@ -1,9 +1,7 @@
 name: flatpak
 
 on:
-  push:
-    branches:
-      - mistress
+  workflow_dispatch:
   schedule:
     - cron: "0 1 * * *"
 env:
@@ -148,8 +146,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: "gh-pages"
-          branch: "gh-pages"
+          path: "gh-pages"
 
       - name: Update static index
         env:
@@ -159,27 +156,24 @@ jobs:
           set -x
           mkdir -p ./gh-pages/repos
 
-          X86_TAG=nightly
-          ARM_TAG=nightly-aarch64
-
-          # Inspect and pin RepoTags to the exact tag we queried (avoid tag duplication)
-          x86=$(skopeo inspect docker://ghcr.io/${IMAGE_REPOSITORY}:${X86_TAG} \
-            | jq --arg tag "$X86_TAG" '.RepoTags = [$tag]')
-          arm=$(skopeo inspect docker://ghcr.io/${IMAGE_REPOSITORY}:${ARM_TAG} \
-            | jq --arg tag "$ARM_TAG" '.RepoTags = [$tag]')
-
-          # Old-style single file: Name + Images [x86, arm]
-          jq -n \
-            --arg name "ghcr.io/${IMAGE_REPOSITORY}" \
-            --argjson x86 "$x86" \
-            --argjson arm "$arm" \
-            '{ "Name": $name, "Images": [$x86, $arm] }' \
+          skopeo inspect docker://ghcr.io/${IMAGE_REPOSITORY}:nightly | \
+            jq --arg github_repository "${GITHUB_REPOSITORY}" \
+              '. as $img | { "Name": $github_repository, "Images": [$img] }' \
             > ./gh-pages/repos/${REPO_NAME}.o
-
           if [ -s ./gh-pages/repos/${REPO_NAME}.o ]; then
             mv ./gh-pages/repos/${REPO_NAME}.o ./gh-pages/repos/${REPO_NAME}
           else
-            rm -f ./gh-pages/repos/${REPO_NAME}.o
+            rm ./gh-pages/repos/${REPO_NAME}.o
+          fi
+
+          skopeo inspect docker://ghcr.io/${IMAGE_REPOSITORY}:nightly-aarch64 | \
+            jq --arg github_repository "${GITHUB_REPOSITORY}" \
+              '. as $img | { "Name": $github_repository, "Images": [$img] }' \
+            > ./gh-pages/repos/${REPO_NAME}-aarch64.o
+          if [ -s ./gh-pages/repos/${REPO_NAME}-aarch64.o ]; then
+            mv ./gh-pages/repos/${REPO_NAME}-aarch64.o ./gh-pages/repos/${REPO_NAME}-aarch64
+          else
+            rm ./gh-pages/repos/${REPO_NAME}-aarch64.o
           fi
 
           git -C ./gh-pages add .
