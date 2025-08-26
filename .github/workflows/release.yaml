@@ -12,22 +12,23 @@ jobs:
     name: Setup
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch Night Assets
-        uses: lunarequest/fetch-gh-release-asset@master
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          repo: "Lunarequest/SnekStudio"
-          version: "tags/nightly"
-          regex: true
-          file: "SnekStudio_Linux-*.tar.gz"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: true
+          fetch-depth: "0"
+          fetch-tags: true
       - name: setup
         shell: bash
         run: |
           cp ./flatpak/* .
           mkdir icons
-          for size in ("32x32" "64x64" "128x128" "256x256" "512x512") do
-            wget "https://github.com/ExpiredPopsicle/SnekStudio/blob/main/Core/UI/Images/icons/$(size).png" -O "icons/$(size.png)"
+          for size in "32x32" "64x64" "128x128" "256x256" "512x512"; do
+            wget "https://github.com/ExpiredPopsicle/SnekStudio/blob/main/Core/UI/Images/icons/${size}.png" -O "icons/${size}.png"
           done
+          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
+          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
+          ls
           sed -i "s|AMD64_ARCHIVE|$(ls | grep x86_64)|g" com.snekstudio.Snekstudio.yaml
           sed -i "s|AMD64_ARCHIVE|$(ls | grep arm64)|g" com.snekstudio.Snekstudio.yaml
-          cat com.snekstudio.SnekStudio.yaml
+          cat com.snekstudio.Snekstudio.yaml
