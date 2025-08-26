@@ -63,10 +63,10 @@ jobs:
 
       - run: mv repo ${FLATPAK_BUILD_REPO_x64}
 
-      - name: Build x64
+      - name: Build aarch64
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: SnekStudio_${{ env.FLATPAK_BRANCH }}_x86_64.flatpak
+          bundle: SnekStudio_${{ env.FLATPAK_BRANCH }}_aarch64.flatpak
           manifest-path: com.snekstudio.Snekstudio.yaml
           cache: false
           upload-artifact: false
@@ -100,16 +100,13 @@ jobs:
 
       - run: ls
 
-      - name: import x86_64
-        run: |
-          flatpak build-import-bundle snekstudio-nightly SnekStudio_nightly_x86_64.flatpak
-
       - name: create oci bundle for x86_64
         run: |
+          mkdir -p ${FLATPAK_BUILD_REPO_x64}/{extensions,refs/{mirrors,remotes},state,tmp/cache}
           flatpak build-bundle \
           --oci \
           --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
-          build_dir snekstudio-nightly com.snekstudio.Snekstudio nightly
+          ${FLATPAK_BUILD_REPO_x64} snekstudio-nightly com.snekstudio.Snekstudio nightly
 
       - name: publish oci bundle x86_64
         env:
