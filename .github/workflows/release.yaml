@@ -52,7 +52,7 @@ jobs:
           cp ./flatpak/* .
           mkdir icons
           for size in "32x32" "64x64" "128x128" "256x256" "512x512"; do
-            wget "https://github.com/ExpiredPopsicle/SnekStudio/blob/main/Core/UI/Images/icons/${size}.png" -O "icons/${size}.png"
+            wget "https://github.com/ExpiredPopsicle/SnekStudio/blob/main/Core/UI/Images/icons/${size}.png?raw=true" -O "icons/${size}.png"
           done
           sed -i "s|AMD64_ARCHIVE|$(ls | grep x86_64)|g" com.snekstudio.Snekstudio.yaml
           sed -i "s|ARM64_ARCHIVE|$(ls | grep arm64)|g" com.snekstudio.Snekstudio.yaml
