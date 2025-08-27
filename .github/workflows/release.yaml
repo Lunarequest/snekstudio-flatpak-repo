@@ -9,7 +9,59 @@ env:
   FLATPAK_BUILD_REPO_x64: build-repo-x64
   FLATPAK_BUILD_REPO_arm64: build-repo-aarch64
 jobs:
+  check_for_updates:
+    runs-on: ubuntu-latest
+    outputs:
+      newnightly: ${{ steps.check-url.outputs.newnightly }}
+      amd64_url: ${{ steps.get-urls.outputs.amd64_url }}
+      arm64_url: ${{ steps.get-urls.outputs.arm64_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Get URLs
+        id: get-urls
+        run: |
+          AMD64_URL=$(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
+          ARM64_URL=$(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
+          echo "amd64_url=$AMD64_URL" >> $GITHUB_OUTPUT
+          echo "arm64_url=$ARM64_URL" >> $GITHUB_OUTPUT
+          echo "AMD64_URL=$AMD64_URL" >> $GITHUB_ENV
+          echo "ARM64_URL=$ARM64_URL" >> $GITHUB_ENV
+
+      - name: Check if new nightly
+        id: check-url
+        run: |
+          CURRENT_AMD64_URL=$(jq -r '.AMD64_URL' update.json)
+          CURRENT_ARM64_URL=$(jq -r '.ARM64_URL' update.json)
+
+          if [ "$AMD64_URL" != "$CURRENT_AMD64_URL" ] || [ "$ARM64_URL" != "$CURRENT_ARM64_URL" ]; then
+            echo "newnightly=true" >> $GITHUB_OUTPUT
+            echo "New nightly build detected!"
+          else
+            echo "newnightly=false" >> $GITHUB_OUTPUT
+            echo "No new nightly build found."
+          fi
+
+      - name: Update JSON file
+        if: steps.check-url.outputs.newnightly == 'true'
+        run: |
+          jq --arg amd64_url "$AMD64_URL" --arg arm64_url "$ARM64_URL" \
+            '.AMD64_URL = $amd64_url | .ARM64_URL = $arm64_url' \
+            update.json > temp.json && mv temp.json update.json
+
+      - name: Commit updated JSON
+        if: steps.check-url.outputs.newnightly == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add update.json
+          git commit -m "Update nightly URLs - $(date -u +%Y-%m-%d)"
+          git push
+
   build_flatpak:
+    needs: check_for_updates
+    if: needs.check_for_updates.outputs.newnightly == 'true'
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
@@ -34,8 +86,8 @@ jobs:
       - name: fetch
         shell: bash
         run: |
-          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
-          wget $(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
+          wget ${{ needs.check_for_updates.outputs.amd64_url }}
+          wget ${{ needs.check_for_updates.outputs.arm64_url }}
 
       - name: steup flatpak files
         shell: bash
@@ -137,6 +189,7 @@ jobs:
           skopeo copy \
            oci:snekstudio-nightly-aarch64 \
            docker://ghcr.io/${IMAGE_REPOSITORY}:nightly-aarch64
+
   update-flatpak-oci-index:
     runs-on: ubuntu-latest
     needs: oci_publish

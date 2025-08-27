@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - mistress
+    paths-ignore:
+      - "update.json"
 
 jobs:
   update-index:
