@@ -243,5 +243,6 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git -C gh-pages git pull
           git -C gh-pages commit --allow-empty -am "Update index $(date -u +%Y%m%d%H%M)"
           git -C gh-pages push
