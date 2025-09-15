@@ -6,6 +6,10 @@ on:
       - mistress
     paths-ignore:
       - "update.json"
+  workflow_run:
+    workflows: ["flatpak"]
+    types:
+      - completed
 
 jobs:
   update-index:
