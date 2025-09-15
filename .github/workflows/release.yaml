@@ -22,8 +22,8 @@ jobs:
       - name: Get URLs
         id: get-urls
         run: |
-          AMD64_URL=$(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
-          ARM64_URL=$(curl -s https://api.github.com/repos/Lunarequest/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
+          AMD64_URL=$(curl -s https://api.github.com/repos/ExpiredPopsicle/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-x86_64.*\\.tar\\.gz$")) | .browser_download_url')
+          ARM64_URL=$(curl -s https://api.github.com/repos/ExpiredPopsicle/SnekStudio/releases/tags/nightly | jq -r '.assets[] | select(.name | test("SnekStudio_Linux-arm64.*\\.tar\\.gz$")) | .browser_download_url')
           echo "amd64_url=$AMD64_URL" >> $GITHUB_OUTPUT
           echo "arm64_url=$ARM64_URL" >> $GITHUB_OUTPUT
           echo "AMD64_URL=$AMD64_URL" >> $GITHUB_ENV
