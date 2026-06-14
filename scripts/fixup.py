@@ -6,6 +6,7 @@ def patch_image(image: dict) -> dict:
     amd64 = image["Architecture"] == "amd64"
 
     image["Tags"] = image.pop("RepoTags")
+    image["OS"] = image.pop("Os")
     if amd64:
         image["Tags"].remove("nightly-aarch64")
     else:
