@@ -37,6 +37,7 @@ jobs:
             echo "Processing $f file..."
             cat ./gh-pages/index/static | jq --argjson container "$(cat $f)" '.Results += [ $container ]' > ./gh-pages/index/static
           done
+          cd gh-pages
           python3 scripts/fixup.py
 
       - name: Check for changes
