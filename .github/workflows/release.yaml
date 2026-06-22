@@ -126,7 +126,7 @@ jobs:
       - run: mv repo ${FLATPAK_BUILD_REPO_arm64}
 
       - name: Upload built files as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: flatpak-output
           path: |
