@@ -64,7 +64,7 @@ jobs:
     if: needs.check_for_updates.outputs.newnightly == 'true'
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-26.08
       options: --privileged
     steps:
       - name: Install deps
