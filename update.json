@@ -1,4 +1,4 @@
 {
-  "AMD64_URL": "",
-  "ARM64_URL": ""
+  "AMD64_URL": "https://github.com/ExpiredPopsicle/SnekStudio/releases/download/nightly/SnekStudio_Linux-x86_64_0.1.7-3-ga6c63db.tar.gz",
+  "ARM64_URL": "https://github.com/ExpiredPopsicle/SnekStudio/releases/download/nightly/SnekStudio_Linux-arm64_0.1.7-3-ga6c63db.tar.gz"
 }
